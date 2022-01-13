@@ -1,7 +1,5 @@
 package com.reactlibrary;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -34,7 +32,6 @@ import com.alibaba.sdk.android.oss.model.UploadPartResult;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -53,8 +50,11 @@ public class AliyunUploadManager {
 
     private OSS mOSS;
 
+    private OSSAsyncTask task;
+
     /**
      * AliyunUploadManager contructor
+     *
      * @param oss
      */
     public AliyunUploadManager(OSS oss) {
@@ -63,6 +63,7 @@ public class AliyunUploadManager {
 
     /**
      * asyncUpload
+     *
      * @param context
      * @param bucketName
      * @param ossFile
@@ -85,7 +86,7 @@ public class AliyunUploadManager {
             cursor.moveToFirst();
             sourceFile = cursor.getString(column_index);
         } catch (Exception e) {
-            sourceFile = FileUtils.getFilePathFromURI(context.getCurrentActivity(), selectedVideoUri);
+            // sourceFile = FileUtils.getFilePathFromURI(context.getCurrentActivity(), selectedVideoUri);
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -112,7 +113,7 @@ public class AliyunUploadManager {
             }
         });
 
-        OSSAsyncTask task = mOSS.asyncPutObject(put, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
+        task = mOSS.asyncPutObject(put, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
             @Override
             public void onSuccess(PutObjectRequest request, PutObjectResult result) {
                 Log.d("PutObject", "UploadSuccess");
@@ -123,7 +124,7 @@ public class AliyunUploadManager {
 
             @Override
             public void onFailure(PutObjectRequest request, ClientException clientExcepion, ServiceException serviceException) {
-                PromiseExceptionManager.resolvePromiseException(clientExcepion,serviceException,promise);
+                PromiseExceptionManager.resolvePromiseException(clientExcepion, serviceException, promise);
             }
         });
         Log.d("AliyunOSS", "OSS uploadObjectAsync ok!");
@@ -131,13 +132,14 @@ public class AliyunUploadManager {
 
     /**
      * asyncAppendObject
+     *
      * @param bucketName
      * @param objectKey
      * @param uploadFilePath
      * @param options
      * @param promise
      */
-    public void asyncAppendObject(final ReactContext context,String bucketName,String objectKey,String uploadFilePath,ReadableMap options,final Promise promise) {
+    public void asyncAppendObject(final ReactContext context, String bucketName, String objectKey, String uploadFilePath, ReadableMap options, final Promise promise) {
 
         // Content to file:// start
         Uri selectedVideoUri = Uri.parse(uploadFilePath);
@@ -153,7 +155,7 @@ public class AliyunUploadManager {
             cursor.moveToFirst();
             uploadFilePath = cursor.getString(column_index);
         } catch (Exception e) {
-            uploadFilePath = FileUtils.getFilePathFromURI(context.getCurrentActivity(), selectedVideoUri);
+            // uploadFilePath = FileUtils.getFilePathFromURI(context.getCurrentActivity(), selectedVideoUri);
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -184,19 +186,20 @@ public class AliyunUploadManager {
             }
         });
 
-        OSSAsyncTask task = mOSS.asyncAppendObject(append, new OSSCompletedCallback<AppendObjectRequest, AppendObjectResult>() {
+        task = mOSS.asyncAppendObject(append, new OSSCompletedCallback<AppendObjectRequest, AppendObjectResult>() {
             @Override
             public void onSuccess(AppendObjectRequest request, AppendObjectResult result) {
                 Log.d("AppendObject", "AppendSuccess");
                 Log.d("NextPosition", "" + result.getNextPosition());
                 WritableMap map = Arguments.createMap();
-                map.putString("AppendObject","AppendSuccess");
+                map.putString("AppendObject", "AppendSuccess");
                 map.putDouble("NextPosition", result.getNextPosition());
                 promise.resolve(map);
             }
+
             @Override
             public void onFailure(AppendObjectRequest request, ClientException clientExcepion, ServiceException serviceException) {
-                PromiseExceptionManager.resolvePromiseException(clientExcepion,serviceException,promise);
+                PromiseExceptionManager.resolvePromiseException(clientExcepion, serviceException, promise);
             }
         });
     }
@@ -229,7 +232,7 @@ public class AliyunUploadManager {
             }
         });
 
-        OSSAsyncTask resumableTask = mOSS.asyncResumableUpload(request, new OSSCompletedCallback<ResumableUploadRequest, ResumableUploadResult>() {
+        task = mOSS.asyncResumableUpload(request, new OSSCompletedCallback<ResumableUploadRequest, ResumableUploadResult>() {
             @Override
             public void onSuccess(ResumableUploadRequest request, ResumableUploadResult result) {
                 promise.resolve("resumableUpload success");
@@ -244,11 +247,12 @@ public class AliyunUploadManager {
 
     /**
      * initMultipartUpload
+     *
      * @param bucketName
      * @param objectKey
      * @param promise
      */
-    public void initMultipartUpload(String bucketName,String objectKey,final Promise promise) {
+    public void initMultipartUpload(String bucketName, String objectKey, final Promise promise) {
         String uploadId;
         InitiateMultipartUploadRequest init = new InitiateMultipartUploadRequest(bucketName, objectKey);
         InitiateMultipartUploadResult initResult = null;
@@ -267,6 +271,7 @@ public class AliyunUploadManager {
 
     /**
      * multipartUpload
+     *
      * @param context
      * @param bucketName
      * @param objectKey
@@ -275,7 +280,7 @@ public class AliyunUploadManager {
      * @param options
      * @param promise
      */
-    public void multipartUpload(final ReactContext context,String bucketName, String objectKey, String uploadId,String filepath, ReadableMap options,final Promise promise) {
+    public void multipartUpload(final ReactContext context, String bucketName, String objectKey, String uploadId, String filepath, ReadableMap options, final Promise promise) {
 
         Uri selectedVideoUri = Uri.parse(filepath);
         // 1. content uri -> file path
@@ -309,7 +314,7 @@ public class AliyunUploadManager {
         long uploadedLength = 0;
         List<PartETag> partETags = new ArrayList<PartETag>(); // 保存分片上传的结果
         while (uploadedLength < fileLength) {
-            int partLength = (int)Math.min(partSize, fileLength - uploadedLength);
+            int partLength = (int) Math.min(partSize, fileLength - uploadedLength);
             byte[] partData = new byte[0]; // 按照分片大小读取文件的一段内容
             try {
                 partData = IOUtils.readStreamAsBytesArray(input, partLength);
@@ -334,7 +339,7 @@ public class AliyunUploadManager {
             currentIndex++;
         }
 
-        CompleteMultipartUploadRequest complete = new CompleteMultipartUploadRequest(bucketName, objectKey,uploadId,partETags);
+        CompleteMultipartUploadRequest complete = new CompleteMultipartUploadRequest(bucketName, objectKey, uploadId, partETags);
         CompleteMultipartUploadResult completeResult = null;
         try {
             completeResult = mOSS.completeMultipartUpload(complete);
@@ -354,12 +359,13 @@ public class AliyunUploadManager {
 
     /**
      * abortMultipartUpload
+     *
      * @param bucketName
      * @param objectKey
      * @param uploadId
      * @param promise
      */
-    public void abortMultipartUpload(String bucketName,String objectKey,String uploadId,final Promise promise) {
+    public void abortMultipartUpload(String bucketName, String objectKey, String uploadId, final Promise promise) {
         AbortMultipartUploadRequest abort = new AbortMultipartUploadRequest(bucketName, objectKey, uploadId);
         try {
             mOSS.abortMultipartUpload(abort);
@@ -375,12 +381,13 @@ public class AliyunUploadManager {
 
     /**
      * listParts
+     *
      * @param bucketName
      * @param objectKey
      * @param uploadId
      * @param promise
      */
-    public void listParts (String bucketName,String objectKey,String uploadId,final Promise promise) {
+    public void listParts(String bucketName, String objectKey, String uploadId, final Promise promise) {
         ListPartsRequest listParts = new ListPartsRequest(bucketName, objectKey, uploadId);
         ListPartsResult result = null;
         try {
@@ -401,10 +408,19 @@ public class AliyunUploadManager {
             Log.d("listParts", "lastModified: " + result.getParts().get(i).getLastModified());
             Log.d("listParts", "partSize: " + result.getParts().get(i).getSize());
             listPartsData.putInt("partNum" + i, result.getParts().get(i).getPartNumber());
-            listPartsData.putString("partEtag"+i,result.getParts().get(i).getETag());
+            listPartsData.putString("partEtag" + i, result.getParts().get(i).getETag());
 //          listPartsData.("lastModified" + i,result.getParts().get(i).getLastModified());
-            listPartsData.putDouble("partSize"+i,result.getParts().get(i).getSize());
+            listPartsData.putDouble("partSize" + i, result.getParts().get(i).getSize());
         }
         promise.resolve(listPartsData);
+    }
+
+    /**
+     * 中止上传
+     */
+    public void cancelTask() {
+        if (task != null) {
+            task.cancel();
+        }
     }
 }

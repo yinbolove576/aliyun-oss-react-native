@@ -372,4 +372,13 @@ public class RNAliyunOssModule extends ReactContextBaseJavaModule {
     public void asyncDeleteObject(String bucketName, String objectKey,final Promise promise) {
         mObjectManager.asyncDeleteObject(bucketName, objectKey, promise);
     }
+
+    /**
+     * 中止上传
+     */
+    @ReactMethod
+    public void cancelTask() {
+        Log.i("YB","----111-----");
+        mUploadManager.cancelTask();
+    }
 }
