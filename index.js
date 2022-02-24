@@ -246,10 +246,6 @@ export default AliyunOSS = {
      * 中止上传
      */
     cancelTask() {
-        if(Platform.OS === 'ios') {
-
-        } else {
-            RNAliyunOSS.cancelTask();
-        }
+        RNAliyunOSS.cancelTask();
     }
 };

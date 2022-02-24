@@ -5,6 +5,8 @@
 
 #import "RNAliyunOSS+UPLOAD.h"
 
+static OSSPutObjectRequest * uploadRequest;
+
 @implementation RNAliyunOSS (UPLOAD)
 
 /**
@@ -52,4 +54,14 @@ RCT_REMAP_METHOD(asyncUpload, asyncUploadWithBucketName:(NSString *)bucketName o
         
     }];
 }
+
+/**
+ Asynchronous cancel
+ */
+RCT_REMAP_METHOD(cancelTask, resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+    if (uploadRequest) {
+        [uploadRequest cancel];
+    }
+}
+
 @end
